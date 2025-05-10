@@ -8,10 +8,14 @@ load_dotenv()
 
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 PINECONE_ENV = os.getenv("PINECONE_ENV")
-PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX")
+PINECONE_INDEX_FAS = os.getenv("PINECONE_INDEX_FAS")
+PINECONE_INDEX_SS = os.getenv("PINECONE_INDEX_SS")
 
 pinecone.init(api_key=PINECONE_API_KEY, environment=PINECONE_ENV)
 
-pinecone.create_index(PINECONE_INDEX_NAME, dimension=1536)  # if using OpenAI ada-002 (1536 dims)
+pinecone.create_index(PINECONE_INDEX_FAS, dimension=1536)  # text-embedding-3-small	
+pinecone.create_index(PINECONE_INDEX_FAS, dimension=1536)  # text-embedding-3-small	
 
-index = pinecone.Index(PINECONE_INDEX_NAME)
+
+index_fas = pinecone.Index(PINECONE_INDEX_FAS)
+index_ss = pinecone.Index(PINECONE_INDEX_SS)
