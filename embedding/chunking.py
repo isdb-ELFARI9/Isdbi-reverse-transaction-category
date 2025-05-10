@@ -90,7 +90,7 @@ def process_pdf_to_chunks(pdf_path_obj: Path) -> List[Dict]:
     # Create chunk objects with metadata
     chunks = []
     for i, chunk in enumerate(text_chunks):
-        metadata = {
+                    metadata = {
             "source_file": pdf_path_obj.name,
             "standard_no": standard_no,
             "standard_name": standard_name,

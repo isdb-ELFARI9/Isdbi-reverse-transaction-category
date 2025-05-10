@@ -17,6 +17,8 @@ class FASDocument(BaseModel):
     relevance_score: float
     metadata: Optional[Dict] = None
 
+
+
 class FASRetriever:
     def __init__(self):
         """Initialize the FAS Retriever agent."""
@@ -124,21 +126,50 @@ class FASRetriever:
             List of FASDocument objects containing relevant chunks
         """
         query = " ".join(keywords)
-        return self.retrieve(query, top_n, filter_criteria,namespace=namespace) 
-    
+        return self.retrieve(query, top_n, filter_criteria,namespace=namespace)
 
-def get_embedding(text: str) -> list:
-    response = openai.embeddings.create(
-        input=[text],
-        model=EMBEDDING_MODEL
-    )
-    return response.data[0].embedding
+    def retrieve_across_namespaces(self, query: str, top_k: int = 5) -> Dict[str, List[FASDocument]]:
+        """Retrieve documents across all FAS namespaces and organize results by namespace."""
+        try:
+            # Get query embedding
+            query_vector = self.embed_query(query)
+            if not query_vector:
+                return {}
 
-def retrieve_knowledge_from_pinecone_ss(query: str, ss_namespace: str) -> str:
-    embedding = get_embedding(query)
-    # Query Pinecone for the top 2 matches in the correct namespace
-    result = index_ss.query(vector=embedding, top_k=2, namespace=ss_namespace, include_metadata=True)
-    if result and result.matches:
-        # Concatenate the text of the top matches
-        return '\n'.join([m.metadata.get('text', '') for m in result.matches])
-    return '[No relevant Shariah document found]'
+            # Define FAS namespaces
+            fas_namespaces = ["fas_32", "fas_28", "fas_7", "fas_10", "fas_4"]
+            
+            # Search in each namespace
+            results_by_namespace = {}
+            for namespace in fas_namespaces:
+                try:
+                    search_results = self.index.query(
+                        vector=query_vector,
+                        top_k=top_k,
+                        namespace=namespace,
+                        include_metadata=True
+                    )
+
+                    # Convert results to FASDocument objects
+                    documents = []
+                    for match in search_results.matches:
+                        doc = FASDocument(
+                            fas_id=match.id,
+                            text=match.metadata.get("text_snippet", ""),
+                            relevance_score=match.score,
+                            metadata=match.metadata
+                        )
+                        documents.append(doc)
+
+                    if documents:  # Only add namespace if we found documents
+                        results_by_namespace[namespace] = documents
+
+                except Exception as e:
+                    print(f"Error searching namespace {namespace}: {e}")
+                    continue
+
+            return results_by_namespace
+
+        except Exception as e:
+            print(f"Error in retrieve_across_namespaces: {e}")
+            return {}

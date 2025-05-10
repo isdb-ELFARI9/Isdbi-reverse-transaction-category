@@ -10,7 +10,7 @@ from typing import List, Optional, Dict
 # Add the src directory to Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-from src.agents.fas_retriever import FASRetriever
+from src.agents.fas_retriever import FASDocument, FASRetriever
 from src.agents.transaction_deconstructor import TransactionDeconstructor
 
 def test_standalone_retriever():
@@ -24,23 +24,11 @@ def test_standalone_retriever():
     print("\nTest Case 1: Direct Query")
     print("=" * 50)
     query = "Scope of the Standard FAS 28"
-    results = retriever.retrieve(query, namespace="fas_32", top_n=5)
+    results = retriever.retrieve_across_namespaces(query)
     
     print_results(results)
     
-    # Test Case 2: Keywords
-    print("\nTest Case 2: Keywords")
-    print("=" * 50)
-    keywords = [
-        "equity",
-        "buyout",
-        "acquisition",
-        "derecognition",
-        "ownership transfer"
-    ]
-    results = retriever.retrieve_by_keywords(keywords, top_n=3,namespace="fas_4")
-    
-    print_results(results)
+ 
 
 def test_agent_chain():
     """Test the chain of Transaction Deconstructor → FAS Retriever."""
@@ -118,15 +106,43 @@ def test_agent_chain():
     
     print_results(results)
 
-def print_results(results):
-    """Helper function to print search results."""
-    for i, doc in enumerate(results, 1):
-        print(f"\nResult {i}:")
-        print(f"FAS ID: {doc.fas_id}")
-        print(f"Relevance Score: {doc.relevance_score:.4f}")
-        print(f"Text: {doc.text[:200]}...")  # Print first 200 chars
-        if doc.metadata:
-            print("Metadata:", json.dumps(doc.metadata, indent=2))
+def print_results(results: Dict[str, List[FASDocument]]):
+    """
+    Print results from retrieve_across_namespaces in an organized way.
+    
+    Args:
+        results: Dictionary of results organized by namespace
+    """
+    if not results:
+        print("No results found.")
+        return
+
+    print("\n=== Search Results by Standard ===")
+    print("=" * 80)
+
+    for namespace, documents in results.items():
+        print(f"\n📚 Standard: {namespace}")
+        print("-" * 80)
+        
+        for i, doc in enumerate(documents, 1):
+            print(f"\nResult {i}:")
+            print(f"Relevance Score: {doc.relevance_score:.4f}")
+            print(f"Document ID: {doc.fas_id}")
+            
+            # Print metadata if available
+            if doc.metadata:
+                print("\nMetadata:")
+                for key, value in doc.metadata.items():
+                    if key != "text_snippet":  # Skip text_snippet as we'll print the full text
+                        print(f"  {key}: {value}")
+            
+            # Print the text content
+            print("\nContent:")
+            print(f"{doc.text[:500]}...")  # Print first 500 chars
+            print("-" * 40)
+
+    print("\n=== End of Results ===")
+    print("=" * 80)
 
 if __name__ == "__main__":
     # Run standalone test
