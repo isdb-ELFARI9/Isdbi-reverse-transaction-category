@@ -24,9 +24,9 @@ PROJECT_ROOT = SCRIPT_DIR_EMBEDDING.parent # Assuming 'embedding.py' is in a sub
 load_dotenv()
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
+PINECONE_API_KEY = os.getenv("PINECONE_API_KEY_SS_FULL")
 PINECONE_ENV = os.getenv("PINECONE_ENVIRONMENT") 
-PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_FAS") 
+PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_FAS_FULL") 
 
 SCRIPT_DIR = Path(os.path.dirname(os.path.abspath(__file__))).parent
 FAS_FILES_TO_PROCESS_MAP = {
@@ -151,8 +151,8 @@ def prepare_and_upsert_to_pinecone(chunks_data: List[Dict[str, Any]], pinecone_n
 
 # --- Main Workflow (MODIFIED to loop through PDF files) ---
 if __name__ == "__main__":
-    if not SS_FILES_TO_PROCESS_MAP:
-        print("No PDF files defined in SS_FILES_TO_PROCESS_MAP. Exiting.")
+    if not FAS_FILES_TO_PROCESS_MAP:
+        print("No PDF files defined in FAS_FILES_TO_PROCESS_MAP. Exiting.")
         exit()
 
     for pdf_path, standard_name_from_map in SS_FILES_TO_PROCESS_MAP.items():
@@ -166,13 +166,16 @@ if __name__ == "__main__":
         
         # --- Determine Namespace ---
         pinecone_namespace = clean_for_namespace(standard_name_from_map)
-        fn_match_num = re.search(r"SS(?:_|\s|-)?(\d+)", pdf_path.name, re.IGNORECASE)
+        fn_match_num = re.search(r"FAS(?:_|\s|-)?(\d+)", pdf_path.name, re.IGNORECASE)
         if fn_match_num:
             standard_no_for_ns = fn_match_num.group(1)
             pinecone_namespace = f"SS{standard_no_for_ns}"
         else:
             pinecone_namespace = clean_for_namespace(standard_name_from_map if standard_name_from_map else pdf_path.stem)
             print(f"Warning: Could not extract SS number from filename '{pdf_path.name}'. Using namespace: '{pinecone_namespace}'")
+            pinecone_namespace = "FAS_FULL"
+
+        pinecone_namespace = "FAS_FULL"
         
         print(f"Target Pinecone Namespace: {pinecone_namespace}")
 

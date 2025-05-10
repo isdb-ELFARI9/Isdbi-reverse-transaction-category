@@ -6,11 +6,13 @@ from pinecone import Pinecone, ServerlessSpec
 load_dotenv()
 
 
-PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
+PINECONE_API_KEY = os.getenv("PINECONE_API_KEY_SS_FULL")
 PINECONE_PINE_ENV = os.getenv("PINECONE_ENVIRONMENT")
 
-PINECONE_INDEX_FAS_NAME = os.getenv("PINECONE_INDEX_FAS")
-PINECONE_INDEX_SS_NAME = os.getenv("PINECONE_INDEX_SS")
+PINECONE_INDEX_FAS_NAME_UPDATE = os.getenv("PINECONE_INDEX_FAS_FULL")
+PINECONE_INDEX_SS_NAME_UPDATE = os.getenv("PINECONE_INDEX_SS_FULL")
+
+
 
 DIMENSION = 1536  # For text-embedding-3-small
 METRIC = "cosine" 
@@ -48,29 +50,17 @@ def create_index_if_not_exists(index_name, dimension, metric, environment_for_sp
 
 
 # Create indexes if they don't exist
-create_index_if_not_exists(PINECONE_INDEX_FAS_NAME, DIMENSION, METRIC, PINECONE_PINE_ENV)
-create_index_if_not_exists(PINECONE_INDEX_SS_NAME, DIMENSION, METRIC, PINECONE_PINE_ENV)
+create_index_if_not_exists(PINECONE_INDEX_SS_NAME_UPDATE, DIMENSION, METRIC, PINECONE_PINE_ENV)
 
 
 # --- Get Index Objects ---
-index_fas = None
-if PINECONE_INDEX_FAS_NAME:
-    try:
-        index_fas = pc.Index(PINECONE_INDEX_FAS_NAME)
-        # You can verify connection by describing stats (optional)
-        stats = index_fas.describe_index_stats()
-        print(f"\nSuccessfully connected to index '{PINECONE_INDEX_FAS_NAME}'. Stats: {stats}")
-    except Exception as e:
-        print(f"\nCould not connect to index '{PINECONE_INDEX_FAS_NAME}'. Error: {e}")
-        print(f"Please ensure index '{PINECONE_INDEX_FAS_NAME}' exists and is ready in environment '{PINECONE_PINE_ENV}'.")
-
 
 index_ss = None
-if PINECONE_INDEX_SS_NAME:
+if PINECONE_INDEX_SS_NAME_UPDATE:
     try:
-        index_ss = pc.Index(PINECONE_INDEX_SS_NAME)
+        index_ss = pc.Index(PINECONE_INDEX_SS_NAME_UPDATE)
         stats = index_ss.describe_index_stats()
-        print(f"Successfully connected to index '{PINECONE_INDEX_SS_NAME}'. Stats: {stats}")
+        print(f"Successfully connected to index '{PINECONE_INDEX_SS_NAME_UPDATE}'. Stats: {stats}")
     except Exception as e:
-        print(f"\nCould not connect to index '{PINECONE_INDEX_SS_NAME}'. Error: {e}")
-        print(f"Please ensure index '{PINECONE_INDEX_SS_NAME}' exists and is ready in environment '{PINECONE_PINE_ENV}'.")
+        print(f"\nCould not connect to index '{PINECONE_INDEX_SS_NAME_UPDATE}'. Error: {e}")
+        print(f"Please ensure index '{PINECONE_INDEX_SS_NAME_UPDATE}' exists and is ready in environment '{PINECONE_PINE_ENV}'.")
