@@ -74,5 +74,3 @@ if PINECONE_INDEX_SS_NAME:
     except Exception as e:
         print(f"\nCould not connect to index '{PINECONE_INDEX_SS_NAME}'. Error: {e}")
         print(f"Please ensure index '{PINECONE_INDEX_SS_NAME}' exists and is ready in environment '{PINECONE_PINE_ENV}'.")
-
-
