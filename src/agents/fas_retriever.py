@@ -3,7 +3,7 @@ FAS Document Retriever Agent
 Purpose: Retrieves relevant sections from FAS documents based on queries.
 """
 
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Union
 from pydantic import BaseModel
 from pinecone import Pinecone
 from ..core.config import settings
@@ -12,9 +12,14 @@ from openai import OpenAI
 
 class FASDocument(BaseModel):
     """Model for FAS document chunks."""
-    fas_id: str
+    id: str
     text: str
     relevance_score: float
+    document_type: str
+    section_heading: str
+    source_filename: str
+    chunk_index: int
+    total_chunks: int
     metadata: Optional[Dict] = None
 
 
@@ -29,7 +34,7 @@ class FASRetriever:
         )
         
         # Get the FAS index
-        self.index = self.pc.Index("fas-embeddings-index")
+        self.index = self.pc.Index(settings.PINECONE_INDEX_FAS)
         
         # Verify index connection
         try:
@@ -59,15 +64,18 @@ class FASRetriever:
         """
         formatted_results = []
         for match in results:
-            # Extract metadata
             metadata = match.get('metadata', {})
-            fas_id = metadata.get('fas_id', 'Unknown')
             
-            # Create FASDocument object
+            # Create FASDocument object with new structure
             doc = FASDocument(
-                fas_id=fas_id,
-                text=match.get('text', ''),
+                id=match.get('id', ''),
+                text=metadata.get('text', ''),
                 relevance_score=match.get('score', 0.0),
+                document_type=metadata.get('document_type', ''),
+                section_heading=metadata.get('section_heading', ''),
+                source_filename=metadata.get('source_filename', ''),
+                chunk_index=metadata.get('chunk_index', 0),
+                total_chunks=metadata.get('total_chunks', 0),
                 metadata=metadata
             )
             formatted_results.append(doc)
@@ -78,30 +86,53 @@ class FASRetriever:
         self,
         query: str,
         top_n: int = 5,
-        filter_criteria: Optional[Dict] = None,
-        namespace: str = ""
+        document_types: Optional[Union[str, List[str]]] = None,
+        section_heading: Optional[str] = None,
+        namespace: str = "default"
     ) -> List[FASDocument]:
         """
         Retrieve relevant FAS document chunks based on the query.
         
         Args:
-            query: Search query from Transaction Deconstructor
+            query: Search query
             top_n: Number of top results to return
-            filter_criteria: Optional filter criteria for the search
+            document_types: Optional document type(s) to filter by
+            section_heading: Optional section heading to filter by
+            namespace: Namespace to search in (defaults to "default")
             
         Returns:
             List of FASDocument objects containing relevant chunks
         """
         try:
             query_vector = self.embed_query(query)
+            
+            # Build filter criteria
+            filter_criteria = {}
+            if document_types:
+                if isinstance(document_types, str):
+                    filter_criteria["document_type"] = {"$eq": document_types}
+                else:
+                    filter_criteria["document_type"] = {"$in": document_types}
+            
+            if section_heading:
+                if filter_criteria:
+                    filter_criteria = {
+                        "$and": [
+                            filter_criteria,
+                            {"section_heading": {"$eq": section_heading}}
+                        ]
+                    }
+                else:
+                    filter_criteria["section_heading"] = {"$eq": section_heading}
+
             search_results = self.index.query(
                 vector=query_vector,
                 top_k=top_n,
                 include_metadata=True,
-                filter=filter_criteria,
+                filter=filter_criteria if filter_criteria else None,
                 namespace=namespace
             )
-            print(f"Raw search results: {search_results.matches}")  # Log raw results
+            
             return self._format_search_results(search_results.matches)
         except Exception as e:
             print(f"Error retrieving documents: {e}")
@@ -111,8 +142,9 @@ class FASRetriever:
         self,
         keywords: List[str],
         top_n: int = 5,
-        filter_criteria: Optional[Dict] = None,
-        namespace: str = ""
+        document_types: Optional[Union[str, List[str]]] = None,
+        section_heading: Optional[str] = None,
+        namespace: str = "default"
     ) -> List[FASDocument]:
         """
         Retrieve documents using a list of keywords.
@@ -120,56 +152,28 @@ class FASRetriever:
         Args:
             keywords: List of search keywords
             top_n: Number of top results to return
-            filter_criteria: Optional filter criteria for the search
+            document_types: Optional document type(s) to filter by
+            section_heading: Optional section heading to filter by
+            namespace: Namespace to search in (defaults to "default")
             
         Returns:
             List of FASDocument objects containing relevant chunks
         """
         query = " ".join(keywords)
-        return self.retrieve(query, top_n, filter_criteria,namespace=namespace)
+        return self.retrieve(
+            query=query,
+            top_n=top_n,
+            document_types=document_types,
+            section_heading=section_heading,
+            namespace=namespace
+        )
 
-    def retrieve_across_namespaces(self, query: str, top_k: int = 5) -> Dict[str, List[FASDocument]]:
-        """Retrieve documents across all FAS namespaces and organize results by namespace."""
-        try:
-            # Get query embedding
-            query_vector = self.embed_query(query)
-            if not query_vector:
-                return {}
-
-            # Define FAS namespaces
-            fas_namespaces = ["fas_32", "fas_28", "fas_7", "fas_10", "fas_4"]
-            
-            # Search in each namespace
-            results_by_namespace = {}
-            for namespace in fas_namespaces:
-                try:
-                    search_results = self.index.query(
-                        vector=query_vector,
-                        top_k=top_k,
-                        namespace=namespace,
-                        include_metadata=True
-                    )
-
-                    # Convert results to FASDocument objects
-                    documents = []
-                    for match in search_results.matches:
-                        doc = FASDocument(
-                            fas_id=match.id,
-                            text=match.metadata.get("text_snippet", ""),
-                            relevance_score=match.score,
-                            metadata=match.metadata
-                        )
-                        documents.append(doc)
-
-                    if documents:  # Only add namespace if we found documents
-                        results_by_namespace[namespace] = documents
-
-                except Exception as e:
-                    print(f"Error searching namespace {namespace}: {e}")
-                    continue
-
-            return results_by_namespace
-
-        except Exception as e:
-            print(f"Error in retrieve_across_namespaces: {e}")
-            return {}
+    def get_available_document_types(self) -> List[str]:
+        """Return list of available FAS document types."""
+        return [
+            "FAS_4_Musharaka",
+            "FAS_7_Salam_Parallel_Salam",
+            "FAS_10_Istisna",
+            "FAS_28_Murabaha_Deferred_Payment_Sales",
+            "FAS_32"
+        ]

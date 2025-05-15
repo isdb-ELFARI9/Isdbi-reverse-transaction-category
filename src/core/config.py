@@ -43,7 +43,6 @@ class Settings(BaseSettings):
     AGENT_MAX_ITERATIONS: int = int(os.getenv("AGENT_MAX_ITERATIONS", "5"))
     VERBOSE: bool = os.getenv("VERBOSE", "True").lower() == "true"
     APP_HOST: str = os.getenv("APP_HOST", "0.0.0.0")
-    APP_PORT: int = int(os.getenv("APP_PORT", "8000"))
     
     class Config:
         env_file = ".env"
