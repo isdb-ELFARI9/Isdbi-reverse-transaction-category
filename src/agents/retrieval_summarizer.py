@@ -26,37 +26,45 @@ class RetrievalSummarizer:
         if not documents:
             return "No relevant findings found."
 
-        # Prepare context from documents
+        # Prepare context from documents with enhanced metadata
         context = "\n\n".join([
-            f"Document {i+1} (Relevance: {doc.relevance_score:.2f}):\n{doc.text}"
+            f"Document {i+1} (Relevance: {doc.relevance_score:.2f}):\n"
+            f"Document Type: {doc.document_type}\n"
+            f"Section: {doc.section_heading}\n"
+            f"Source: {doc.document_type}\n"
+            f"Content:\n{doc.text}"
             for i, doc in enumerate(documents)
         ])
 
-        # Create prompt for summarization
-        prompt = f"""Please analyze the following FAS document excerpts and provide a concise summary of the key findings. 
+        print(f"--------------------------------Context-----: {context}--------------------------------")
+
+        # Create enhanced prompt for summarization
+        prompt = f"""Please analyze the following FAS document excerpts and provide a comprehensive summary of the key findings. 
         Focus on the most relevant and important information that would be useful for understanding the accounting treatment.
 
         Document excerpts:
         {context}
 
-        Please provide a clear and concise summary that:
+        Please provide a clear and structured summary that:
         1. Highlights the key accounting principles or requirements
         2. Identifies any specific conditions or criteria mentioned
         3. Notes any important exceptions or special cases
-        4. Maintains technical accuracy while being understandable
-
+        4. References specific sections and document types where relevant
+        5. Maintains technical accuracy while being understandable
+        6. Includes any relevant metadata that provides context
+        7. The summary should include the FAS number and title for each document.
         Summary:"""
 
         try:
-            # Get summary from OpenAI
+            # Get summary from OpenAI with improved parameters
             response = self.client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
-                    {"role": "system", "content": "You are a financial accounting expert specializing in Islamic finance and FAS standards."},
+                    {"role": "system", "content": "You are a financial accounting expert specializing in Islamic finance and FAS standards. Provide detailed, accurate summaries that maintain technical precision while being clear and accessible."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.3,  # Lower temperature for more focused and consistent outputs
-                max_tokens=500
+                temperature=0.2,  # Lower temperature for more focused and consistent outputs
+                max_tokens=800    # Increased token limit for more detailed summaries
             )
             
             return response.choices[0].message.content.strip()

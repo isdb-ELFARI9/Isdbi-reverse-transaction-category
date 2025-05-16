@@ -68,7 +68,7 @@ class FASApplicabilityAgent:
         # Create the prompt
         prompt = f"""You are an expert AAOIFI (Accounting and Auditing Organization for Islamic Financial Institutions) Standards Analyst. Your task is to determine the applicability of specific AAOIFI Financial Accounting Standards (FAS) to a given financial transaction.
 
-Here are relevant FAS findings that may be relevant to the situation:
+Here are relevant FAS findings that may be relevant to the situation ,found from RAG system:
 
 {formatted_excerpts}
 
@@ -98,9 +98,9 @@ Please provide your analysis in the following JSON format:
 {{
   "applicable_standards": [
     {{
-      "fas_id": "FAS 4",
-      "fas_name": "Musharaka Financing",
-      "probability": 0.1,
+      "fas_id": "",
+      "fas_name": "",
+      "probability": ,
       "reasoning": "Detailed reasoning here..."
     }},
     // ... other standards
@@ -110,7 +110,7 @@ Please provide your analysis in the following JSON format:
         try:
             # Get analysis from OpenAI
             response = self.client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model="gpt-4.1-mini",
                 messages=[
                     {"role": "system", "content": "You are a financial accounting expert specializing in Islamic finance and AAOIFI standards."},
                     {"role": "user", "content": prompt}

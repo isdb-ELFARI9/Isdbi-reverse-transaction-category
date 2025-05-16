@@ -18,12 +18,18 @@ def test_fas_applicability():
     
     # Sample transaction
     transaction = """
-    Al Baraka Bank acquires 100% ownership of GreenTech's equity stake for $1,750,000.
-    The transaction involves:
-    - Buyout of GreenTech's equity stake
-    - Payment of $1,750,000 in cash
-    - Recognition of acquisition expense
-    - Derecognition of GreenTech's equity
+Context: Buyer defaults, stopping project completion. 
+Adjustments:  
+Recognized Revenue: $6,500,000 
+Impairment of Receivables: $500,000 
+Accounting Treatment:  
+Recognition of bad debt 
+Adjustment of work-in-progress valuation 
+Journal Entry for Default Adjustment: 
+Dr. Bad Debt Expense      
+ $500,000   
+Cr. Accounts Receivable $500,000   
+This writes off uncollectible amounts. 
     """
     
     # Sample FAS excerpts
